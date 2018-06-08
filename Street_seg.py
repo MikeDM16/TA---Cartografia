@@ -23,6 +23,7 @@ def main():
 	l = 0
 	c = 3000 
 	mode = 3
+	opt = 0;
 
 	while(True):
 		raster_aux = np.zeros((kernel_size,kernel_size,3)).astype(np.uint8)
@@ -42,9 +43,8 @@ def main():
 		
 		raster_aux = cv2.resize(raster_aux, dsize=(600, 600), interpolation=cv2.INTER_CUBIC)
 		#b08_aux = cv2.resize(b08_aux, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
-		print(str(l) + " " + str(c))
 		
-		canny_img, morfologias, res = process_img.processar(raster_aux)
+		canny_img, morfologias, res = process_img.processar(raster_aux, opt)
 
 		cv2.namedWindow('Regiao')        # Create a named window
 		cv2.moveWindow('Regiao', 100,300)  # Move it to somewhere  
@@ -67,7 +67,7 @@ def main():
 		cv2.resizeWindow("clorofila", size_w,size_w)
 		cv2.imshow("clorofila",  res)'''
 		
-		k = 0xFF & cv2.waitKey(1)
+		k = 0xFF & cv2.waitKey(0)
 
 		# moving along the image 
 		if (k == ord('d')): # right key ->
@@ -89,9 +89,9 @@ def main():
 		elif (k == ord('-')): # down key v 
 			kernel_size = min(200 + kernel_size, max_h)
 
-		elif(k == ord('1')): mode = (0) # use only red chanel
-		elif(k == ord('2')): mode = (1) # use only green chanel
-		elif(k == ord('3')): mode = (2) # use only Blue chanel
+		elif(k == ord('1')): opt = 1 # use only red chanel
+		elif(k == ord('2')): opt = 2 # use only green chanel
+		elif(k == ord('3')): opt = 0 # use only Blue chanel
 		elif(k == ord('4')): mode = (3) # use only RGB chanel
 
 		if k == ord('q'):

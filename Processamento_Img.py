@@ -8,10 +8,10 @@ from scipy.misc import toimage
 
 class Processamento_Img():
 	#-----------------------------------------------------------------------------------------------
-	def processar(self, raster):
+	def processar(self, raster, opt):
 		canny_img = self.canny(raster)
 		
-		morfologias = self.morfologias(canny_img)
+		morfologias = self.morfologias(canny_img, opt)
 		
 		res = [] # self.remover_zonas_clorofila(morfologias, raster)
 
@@ -67,7 +67,7 @@ class Processamento_Img():
 	#-----------------------------------------------------------------------------------------------
 
 	#-----------------------------------------------------------------------------------------------
-	def morfologias(self, img):
+	def morfologias(self, img, opt=0):
 		# adaptiveThreshold( source_array, maxValue, Adaptive_Method, Threshold_Type, BlockSize, Constante substracted to the mean)
 		im_th = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 		
@@ -108,15 +108,33 @@ class Processamento_Img():
 		kernel = np.ones((5,5),np.uint8)
 		'''
 		erosion = cv2.erode(img,kernel,iterations = 1)
-		dilation = cv2.dilate(img,kernel,iterations = 1)
 		opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel) # erosion followed by dilation
 		'''
+		
+		dilation = cv2.dilate(img, kernel,iterations = 1)
+		
 		# Dilation followed by Erosion. 
 		# It is useful in closing small holes inside the foreground objects, or small black points on the object.
 		closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
 
 		# difference between dilation and erosion of an image. The result will look like the outline of the object.
 		gradient = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel) 
+
+		kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9))
+		dilated = cv2.dilate(img, kernel)
+		_, cnts, _ = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		
+		aux = cv2.drawContours(img, cnts, -1, (0,255,0), 3)
+		_, ax = plt.subplots(2,3, figsize = (5,5))
+		ax[0,0].imshow((img)) 
+		ax[0,0].set_title(" Image")
+		ax[0,1].imshow((dilated)) 
+		ax[0,1].set_title("dilated")
+		ax[0,2].imshow((aux))
+		ax[0,2].set_title("contornos")
+
+		if opt == 1 : plt.show()
+
 		'''
 		_, ax = plt.subplots(2,3, figsize = (5,5))
 		ax[0,0].imshow(toimage(img)) 
@@ -134,7 +152,11 @@ class Processamento_Img():
 		ax[1,2].set_title("Floodfilled Image")
 		plt.show()'''
 		
-		return im_floodfill;
+		#if opt==1 : return cv2.bitwise_not(closing)
+		#if opt==2 : 
+		#	return  cv2.bitwise_not(gradient)
+			
+		return im_floodfill
 	#-----------------------------------------------------------------------------------------------
 
 	#-----------------------------------------------------------------------------------------------
