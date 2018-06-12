@@ -5,17 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from scipy.misc import toimage
+import colorsys
 
 class Processamento_Img():
 	#-----------------------------------------------------------------------------------------------
 	def processar(self, raster, opt):
 		canny_img = self.canny(raster)
 		
-		morfologias = self.morfologias(canny_img, opt)
+		res = self.remover_zonas_clorofila(raster, canny_img)
 		
-		res = [] # self.remover_zonas_clorofila(morfologias, raster)
-
-		return(canny_img, morfologias, res)
+		morfologias, grad = self.morfologias(canny_img, opt)
+	
+		return(morfologias, res, (255 - grad))
 	#-----------------------------------------------------------------------------------------------
 	
 	#-----------------------------------------------------------------------------------------------
@@ -43,9 +44,9 @@ class Processamento_Img():
 		
 		'''
 		Apply Canny edge detection using a:
-		 	- wide threshold, 
-		 	- tight threshold, 
-		 	- automatically determined threshold
+			- wide threshold, 
+			- tight threshold, 
+			- automatically determined threshold
 		'''
 		# wide = cv2.Canny(image, 10, 200)
 		# tight = cv2.Canny(image, 225, 250)
@@ -67,7 +68,7 @@ class Processamento_Img():
 	#-----------------------------------------------------------------------------------------------
 
 	#-----------------------------------------------------------------------------------------------
-	def morfologias(self, img, opt=0):
+	def morfologias(self, img, opt=1):
 		# adaptiveThreshold( source_array, maxValue, Adaptive_Method, Threshold_Type, BlockSize, Constante substracted to the mean)
 		im_th = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 		
@@ -105,13 +106,26 @@ class Processamento_Img():
 		ax[1,2].set_title("Foreground")
 		plt.show()'''
 		
+		'''
+		if opt == 1 : 
+			_, ax = plt.subplots(2,3, figsize = (5,5))
+			ax[0,0].imshow((img)) 
+			ax[0,0].set_title("Image")
+			ax[0,1].imshow((im_floodfill)) 
+			ax[0,1].set_title("im_floodfill")
+			ax[0,2].imshow(im_floodfill_inv)
+			ax[0,2].set_title("im_floodfill_inv")
+			ax[1,0].imshow(im_out)
+			ax[1,0].set_title("im_out")
+			plt.show()'''
+
+
 		kernel = np.ones((5,5),np.uint8)
-		'''
-		erosion = cv2.erode(img,kernel,iterations = 1)
-		opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel) # erosion followed by dilation
-		'''
+
 		
-		dilation = cv2.dilate(img, kernel,iterations = 1)
+		#erosion = cv2.erode(img,kernel,iterations = 1)
+		#opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel) # erosion followed by dilation
+		#dilation = cv2.dilate(img, kernel,iterations = 1)
 		
 		# Dilation followed by Erosion. 
 		# It is useful in closing small holes inside the foreground objects, or small black points on the object.
@@ -125,101 +139,55 @@ class Processamento_Img():
 		_, cnts, _ = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 		
 		aux = cv2.drawContours(img, cnts, -1, (0,255,0), 3)
-		_, ax = plt.subplots(2,3, figsize = (5,5))
-		ax[0,0].imshow((img)) 
-		ax[0,0].set_title(" Image")
-		ax[0,1].imshow((dilated)) 
-		ax[0,1].set_title("dilated")
-		ax[0,2].imshow((aux))
-		ax[0,2].set_title("contornos")
+		
+		if opt == 1 : 
+			_, ax = plt.subplots(2,3, figsize = (5,5))
+			ax[0,0].imshow(toimage(img)) 
+			ax[0,0].set_title(" Image")
+			ax[0,1].imshow(toimage(closing)) 
+			ax[0,1].set_title("closing")
+			ax[0,2].imshow(toimage(gradient))
+			ax[0,2].set_title("gradient")
 
-		if opt == 1 : plt.show()
-
-		'''
-		_, ax = plt.subplots(2,3, figsize = (5,5))
-		ax[0,0].imshow(toimage(img)) 
-		ax[0,0].set_title(" Image")
-		ax[0,1].imshow(toimage(closing)) 
-		ax[0,1].set_title("closing")
-		ax[0,2].imshow(toimage(gradient))
-		ax[0,2].set_title("gradient")
-
-		ax[1,0].imshow(toimage(img - gradient))
-		ax[1,0].set_title("img - gradient")
-		ax[1,1].imshow(toimage(im_floodfill))
-		ax[1,1].set_title("Floodfilled Image")
-		ax[1,2].imshow(toimage(im_floodfill))
-		ax[1,2].set_title("Floodfilled Image")
-		plt.show()'''
+			ax[1,0].imshow(toimage(img - gradient))
+			ax[1,0].set_title("img - gradient")
+			ax[1,1].imshow(toimage(im_floodfill))
+			ax[1,1].set_title("Floodfilled Image")
+			ax[1,2].imshow(toimage(im_floodfill_inv))
+			ax[1,2].set_title("Floodfilled inv")
+			plt.show()
 		
 		#if opt==1 : return cv2.bitwise_not(closing)
 		#if opt==2 : 
 		#	return  cv2.bitwise_not(gradient)
 			
-		return im_floodfill
+		return im_floodfill, gradient
 	#-----------------------------------------------------------------------------------------------
 
 	#-----------------------------------------------------------------------------------------------
-	def remover_zonas_clorofila(self, morfologias, raster):
+	def remover_zonas_clorofila(self, raster, canny):
 		l, c, _ = raster.shape
+		res = canny.copy() 
+		#res = np.zeros((l,c)); #morfologias.copy() 
+		
+		## convert to hsv
+		hsv = cv2.cvtColor(raster, cv2.COLOR_BGR2HSV)
 
-		res = np.ones((l,c)); #morfologias.copy() 
+		## mask of green (36,0,0) ~ (70, 255,255)
+		mask = cv2.inRange(hsv, (36, 0, 0), (70, 255,255))
 
-		for i in range(1,l-1):
-			for j in range(1,c-1):
-				# janela 3x3 para obter o valor RGB de um pixel 
-				B = raster[i-1:i+1, j-1:j+1, 0].mean()
-				G = raster[i-1:i+1, j-1:j+1, 1].mean()
-				R = raster[i-1:i+1, j-1:j+1, 2].mean()
+		id_l, id_c = np.nonzero( mask > 0)
+		for i,j in zip(id_l, id_c):
+			res[i,j] = 1
 
-				# converter RGB para HSL 
-				(H,S,L) = self.rgb2hsl(R,G,B)
 
-				# Zonas verdes = clorofila != estradas (em teoria)
-				if not ((H>50 and H<100) and (L > 70) and (S>100)):
-					res[i,j] = 0 # limpar zonas a verde
-	
+		'''
+		## slice the green
+		green_mask = (mask > 0)
+		
+		green = np.zeros_like(raster, np.uint8)
+		green[green_mask] = raster[green_mask]
+		
+		## save
+		cv2.imwrite("green.png", green)''' 
 		return res
-
-	def rgb2hsl(self, R,G,B):
-		var_R = ( R / 255 )
-		var_G = ( G / 255 )
-		var_B = ( B / 255 )
-
-		H = S = L = 0
-
-		var_Min = min( var_R, var_G, var_B )    # Min. value of RGB
-		var_Max = max( var_R, var_G, var_B )    # Max. value of RGB
-		del_Max = var_Max - var_Min             # Delta RGB value
-
-		L = ( var_Max + var_Min )/ 2            # Lightness calculation
-
-		if( del_Max == 0 ):                    # This is a gray, no chroma...
-			H = 0
-			S = 0   
-
-		else:                                   # Chromatic data...
-			if ( L < 0.5 ):
-				S = del_Max / ( var_Max + var_Min )
-			else:
-				S = del_Max / ( 2 - var_Max - var_Min )
-
-			del_R = ( ( ( var_Max - var_R ) / 6 ) + ( del_Max / 2 ) ) / del_Max
-			del_G = ( ( ( var_Max - var_G ) / 6 ) + ( del_Max / 2 ) ) / del_Max
-			del_B = ( ( ( var_Max - var_B ) / 6 ) + ( del_Max / 2 ) ) / del_Max
-			
-			if( var_R == var_Max ):
-				H = del_B - del_G
-			elif ( var_G == var_Max ):
-				H = ( 1 / 3 ) + del_R - del_B
-			elif ( var_B == var_Max ):
-				H = ( 2 / 3 ) + del_G - del_R
-
-		if ( H < 0 ): H += 1
-		if ( H > 1 ): H -= 1
-
-		H *= 240
-		S *= 240
-		L *= 240
-
-		return (H,S,L)

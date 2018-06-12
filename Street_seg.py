@@ -18,12 +18,16 @@ def main():
 	(raster) = jp2_interface.read_sentinel_images()
 
 	(max_h, max_w, _) = raster.shape
-	size_w = 300
-	kernel_size = 200
-	l = 0
-	c = 3000 
-	mode = 3
-	opt = 0;
+	size_w = 400 # size of the windows displayed 
+	
+	shift_size = 50 # step to navigate through image
+	kernel_size = 400 # kernel size to exctract sub region of image
+
+	# Initial position 
+	l = 0; 	c = 3000
+
+	# initial options 
+	mode = 3; opt = 0;
 
 	while(True):
 		raster_aux = np.zeros((kernel_size,kernel_size,3)).astype(np.uint8)
@@ -44,55 +48,56 @@ def main():
 		raster_aux = cv2.resize(raster_aux, dsize=(600, 600), interpolation=cv2.INTER_CUBIC)
 		#b08_aux = cv2.resize(b08_aux, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
 		
-		canny_img, morfologias, res = process_img.processar(raster_aux, opt)
+		(morfologias, res, grad) = process_img.processar(raster_aux, opt)
 
+		# Resize results to display 
+		raster_aux = cv2.resize(raster_aux, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
+		morfologias = cv2.resize(morfologias, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
+		res = cv2.resize(res, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
+		grad = cv2.resize(grad, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
+
+		# Display results 
 		cv2.namedWindow('Regiao')        # Create a named window
-		cv2.moveWindow('Regiao', 100,300)  # Move it to somewhere  
-		cv2.resizeWindow("Regiao", size_w,size_w)
+		cv2.moveWindow('Regiao', 100,300)  # Move it to somewhere 
 		cv2.imshow("Regiao",  raster_aux)
-		
-		cv2.namedWindow("canny")        # Create a named window
-		cv2.moveWindow("canny", 610,300)  # Move it to somewhere  
-		cv2.resizeWindow("canny", size_w,size_w)
-		cv2.imshow("canny",  canny_img)
-		
+					
 		cv2.namedWindow("segmentation")        # Create a named window
-		cv2.moveWindow("segmentation", 1110,300)  # Move it to somewhere  
-		cv2.resizeWindow("segmentation", size_w,size_w)
+		cv2.moveWindow("segmentation", 100 + (size_w + 10),300)  # Move it to somewhere  
 		cv2.imshow("segmentation",  morfologias)
 		
-		'''
-		cv2.namedWindow("clorofila")        # Create a named window
-		cv2.moveWindow("clorofila", 1410,300)  # Move it to somewhere  
-		cv2.resizeWindow("clorofila", size_w,size_w)
-		cv2.imshow("clorofila",  res)'''
+		cv2.namedWindow("Grad")   # Create a named window
+		cv2.moveWindow("Grad", 100 + 2*(size_w + 10),300)  # Move it to somewhere  
+		cv2.imshow("Grad",  grad)
 		
+		# Wait for input option... 
 		k = 0xFF & cv2.waitKey(0)
 
 		# moving along the image 
 		if (k == ord('d')): # right key ->
-			c = min( c + kernel_size, max_w)
+			c = min( c + shift_size, max_w)
 
 		elif (k == ord('a')): # left key <- 
-			c = max( c - kernel_size, 0)
+			c = max( c - shift_size, 0)
 
 		elif (k == ord('w')): # up key ^
-			l = max( l - kernel_size, 0)
+			l = max( l - shift_size, 0)
 
 		elif (k == ord('s')): # down key v 
-			l = min( l + kernel_size, max_h)
+			l = min( l + shift_size, max_h)
 
 		# tweaking zoom 
 		elif (k == ord('+')): # down key v 
-			kernel_size = max( kernel_size - 200, 200)
+			kernel_size = max( kernel_size - 50, 50)
 		
 		elif (k == ord('-')): # down key v 
-			kernel_size = min(200 + kernel_size, max_h)
+			kernel_size = min( kernel_size + 50, max_h)
 
+		
 		elif(k == ord('1')): opt = 1 # use only red chanel
 		elif(k == ord('2')): opt = 2 # use only green chanel
 		elif(k == ord('3')): opt = 0 # use only Blue chanel
 		elif(k == ord('4')): mode = (3) # use only RGB chanel
+		
 
 		if k == ord('q'):
 			cv2.destroyAllWindows()
