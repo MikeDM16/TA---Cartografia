@@ -10,6 +10,8 @@
 - Q: Quit program
 
 ## How to run the program
+ - The images from the diferent sensores should be in a forlder named R10m. The images can be obtained [here](https://scihub.copernicus.eu/dhus/odata/v1/Products('3df8693a-bb39-4114-a262-166a0884eb87')/$value) and the files are located at GRANULE/L2A_T29TNF_A005497_20180326T112919/IMG_DATA/R10m;
+ 
  - Simply run Street_seg.py and two windows will be displayed. 
  - The left one shows the original satellite raster preview
  - The right one displays the results obtained after segmentation. 
