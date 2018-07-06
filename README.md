@@ -16,6 +16,8 @@
  
 ## Main considerations of the algorithm
 
+- Some visual results are presented at Resultados folder. 
+
 - Only the TCI raster is used since it is an RGB image built from 
 the B02 (Blue), B03 (Green), and B04 (Red) Bands. 
 Therefore there's no need of reading the images of the 3 individual 
