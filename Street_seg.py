@@ -33,17 +33,7 @@ def main():
 		raster_aux = np.zeros((kernel_size,kernel_size,3)).astype(np.uint8)
 		#b08_aux = b08[l:l+kernel_size, c:c+kernel_size].astype(np.uint8)
 		
-		if(mode == 0):
-			raster_aux[:,:,0] = raster[l:l+kernel_size, c:c+kernel_size][:,:,0]
-			print("red")
-		elif(mode == 1):
-			raster_aux[:,:,1] = raster[l:l+kernel_size, c:c+kernel_size][:,:,1]
-			print("green")
-		elif(mode == 2):
-			raster_aux[:,:,2] = raster[l:l+kernel_size, c:c+kernel_size][:,:,2]
-			print("azul")
-		else:
-			raster_aux = raster[l:l+kernel_size, c:c+kernel_size]
+		raster_aux = raster[l:l+kernel_size, c:c+kernel_size]
 		
 		raster_aux = cv2.resize(raster_aux, dsize=(600, 600), interpolation=cv2.INTER_CUBIC)
 		#b08_aux = cv2.resize(b08_aux, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
@@ -52,10 +42,16 @@ def main():
 
 		# Resize results to display 
 		raster_aux = cv2.resize(raster_aux, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
-		morfologias = cv2.resize(morfologias, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
-		res = cv2.resize(res, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
+		#morfologias = cv2.resize(morfologias, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
+		#res = cv2.resize(res, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
 		grad = cv2.resize(grad, dsize=(size_w, size_w), interpolation=cv2.INTER_CUBIC)
 
+		'''
+		id_l, id_c = np.nonzero( grad == 0)
+		for i,j in zip(id_l, id_c):
+			raster_aux[i,j] = [255,0,0]
+		'''
+		
 		# Display results 
 		cv2.namedWindow('Regiao')        # Create a named window
 		cv2.moveWindow('Regiao', 100,300)  # Move it to somewhere 
@@ -63,12 +59,8 @@ def main():
 					
 		cv2.namedWindow("segmentation")        # Create a named window
 		cv2.moveWindow("segmentation", 100 + (size_w + 10),300)  # Move it to somewhere  
-		cv2.imshow("segmentation",  morfologias)
-		
-		cv2.namedWindow("Grad")   # Create a named window
-		cv2.moveWindow("Grad", 100 + 2*(size_w + 10),300)  # Move it to somewhere  
-		cv2.imshow("Grad",  grad)
-		
+		cv2.imshow("segmentation",  grad)
+				
 		# Wait for input option... 
 		k = 0xFF & cv2.waitKey(0)
 

@@ -14,7 +14,7 @@ class Processamento_Img():
 		
 		res = self.remover_zonas_clorofila(raster, canny_img)
 		
-		morfologias, grad = self.morfologias(canny_img, opt)
+		morfologias, grad = self.morfologias(res, opt)
 	
 		return(morfologias, res, (255 - grad))
 	#-----------------------------------------------------------------------------------------------
@@ -106,22 +106,8 @@ class Processamento_Img():
 		ax[1,2].set_title("Foreground")
 		plt.show()'''
 		
-		'''
-		if opt == 1 : 
-			_, ax = plt.subplots(2,3, figsize = (5,5))
-			ax[0,0].imshow((img)) 
-			ax[0,0].set_title("Image")
-			ax[0,1].imshow((im_floodfill)) 
-			ax[0,1].set_title("im_floodfill")
-			ax[0,2].imshow(im_floodfill_inv)
-			ax[0,2].set_title("im_floodfill_inv")
-			ax[1,0].imshow(im_out)
-			ax[1,0].set_title("im_out")
-			plt.show()'''
-
 
 		kernel = np.ones((5,5),np.uint8)
-
 		
 		#erosion = cv2.erode(img,kernel,iterations = 1)
 		#opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel) # erosion followed by dilation
@@ -134,12 +120,14 @@ class Processamento_Img():
 		# difference between dilation and erosion of an image. The result will look like the outline of the object.
 		gradient = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel) 
 
+		'''
+		# Find contours on the image (similar to gradient)
 		kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9))
 		dilated = cv2.dilate(img, kernel)
 		_, cnts, _ = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-		
-		aux = cv2.drawContours(img, cnts, -1, (0,255,0), 3)
-		
+		'''
+		aux = cv2.morphologyEx(im_floodfill, cv2.MORPH_GRADIENT, kernel)
+
 		if opt == 1 : 
 			_, ax = plt.subplots(2,3, figsize = (5,5))
 			ax[0,0].imshow(toimage(img)) 
@@ -149,18 +137,14 @@ class Processamento_Img():
 			ax[0,2].imshow(toimage(gradient))
 			ax[0,2].set_title("gradient")
 
-			ax[1,0].imshow(toimage(img - gradient))
-			ax[1,0].set_title("img - gradient")
+			ax[1,0].imshow((aux))
+			ax[1,0].set_title("grad im_flood ")
 			ax[1,1].imshow(toimage(im_floodfill))
 			ax[1,1].set_title("Floodfilled Image")
 			ax[1,2].imshow(toimage(im_floodfill_inv))
 			ax[1,2].set_title("Floodfilled inv")
 			plt.show()
-		
-		#if opt==1 : return cv2.bitwise_not(closing)
-		#if opt==2 : 
-		#	return  cv2.bitwise_not(gradient)
-			
+					
 		return im_floodfill, gradient
 	#-----------------------------------------------------------------------------------------------
 
@@ -174,7 +158,7 @@ class Processamento_Img():
 		hsv = cv2.cvtColor(raster, cv2.COLOR_BGR2HSV)
 
 		## mask of green (36,0,0) ~ (70, 255,255)
-		mask = cv2.inRange(hsv, (36, 0, 0), (70, 255,255))
+		mask = cv2.inRange(hsv, (36, 50, 20), (70, 255,255))
 
 		id_l, id_c = np.nonzero( mask > 0)
 		for i,j in zip(id_l, id_c):
